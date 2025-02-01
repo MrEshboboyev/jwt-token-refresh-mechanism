@@ -10,6 +10,7 @@ namespace Application.Users.Commands.RefreshToken;
 
 public sealed class RefreshTokenCommandHandler(
     IUserRepository userRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     ITokenService tokenService,
     IJwtProvider jwtProvider,
     IUnitOfWork unitOfWork)
@@ -23,7 +24,7 @@ public sealed class RefreshTokenCommandHandler(
         
         #region Validate the refresh token
         
-        var refreshToken = await userRepository.GetRefreshTokenAsync(token, cancellationToken);
+        var refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
         if (refreshToken is null)
         {
             return Result.Failure<RefreshTokenResponse>

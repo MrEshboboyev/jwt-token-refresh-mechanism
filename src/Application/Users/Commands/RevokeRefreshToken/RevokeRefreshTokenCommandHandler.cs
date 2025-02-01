@@ -9,6 +9,7 @@ namespace Application.Users.Commands.RevokeRefreshToken;
 
 public sealed class RevokeRefreshTokenCommandHandler(
     IUserRepository userRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IUnitOfWork unitOfWork)
     : ICommandHandler<RevokeRefreshTokenCommand>
 {
@@ -20,7 +21,7 @@ public sealed class RevokeRefreshTokenCommandHandler(
         
         #region Get the refresh token
         
-        var refreshToken = await userRepository.GetRefreshTokenAsync(token, cancellationToken);
+        var refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
         if (refreshToken is null)
         {
             return Result.Failure(
