@@ -5,7 +5,7 @@ using Domain.Shared;
 
 namespace Application.Users.Commands.RevokeRefreshToken;
 
-public sealed class RevokeRefreshTokenCommandHandler(
+internal sealed class RevokeRefreshTokenCommandHandler(
     IUserRepository userRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IUnitOfWork unitOfWork)

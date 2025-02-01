@@ -8,7 +8,7 @@ using Domain.Shared;
 
 namespace Application.Users.Commands.RefreshToken;
 
-public sealed class RefreshTokenCommandHandler(
+internal sealed class RefreshTokenCommandHandler(
     IUserRepository userRepository,
     IRefreshTokenRepository refreshTokenRepository,
     ITokenService tokenService,
