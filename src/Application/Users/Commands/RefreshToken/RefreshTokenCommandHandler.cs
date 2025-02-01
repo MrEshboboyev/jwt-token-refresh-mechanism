@@ -76,6 +76,7 @@ public sealed class RefreshTokenCommandHandler(
         #region Save changes
         
         userRepository.Update(user);
+        await refreshTokenRepository.AddAsync(newRefreshToken.Value, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         
         #endregion

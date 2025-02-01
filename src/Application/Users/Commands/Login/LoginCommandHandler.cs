@@ -10,10 +10,12 @@ using Domain.ValueObjects;
 namespace Application.Users.Commands.Login;
 
 internal sealed class LoginCommandHandler(
-    IUserRepository userRepository,
     IJwtProvider jwtProvider,
     IPasswordHasher passwordHasher,
-    ITokenService tokenService) : ICommandHandler<LoginCommand, LoginResponse>
+    ITokenService tokenService,
+    IUserRepository userRepository,
+    IRefreshTokenRepository refreshTokenRepository,
+    IUnitOfWork unitOfWork) : ICommandHandler<LoginCommand, LoginResponse>
 {
     public async Task<Result<LoginResponse>> Handle(LoginCommand request,
         CancellationToken cancellationToken)
@@ -58,6 +60,14 @@ internal sealed class LoginCommandHandler(
             Guid.NewGuid().ToString(),
             DateTime.UtcNow.AddDays(7));
         user.AddRefreshToken(refreshToken.Value);
+        
+        #endregion
+        
+        #region Update database
+        
+        userRepository.Update(user);
+        await refreshTokenRepository.AddAsync(refreshToken.Value, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         
         #endregion
 

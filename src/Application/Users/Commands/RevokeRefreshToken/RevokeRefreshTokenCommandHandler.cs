@@ -1,9 +1,7 @@
 using Application.Abstractions.Messaging;
-using Domain.Entities;
 using Domain.Errors;
 using Domain.Repositories;
 using Domain.Shared;
-using MediatR;
 
 namespace Application.Users.Commands.RevokeRefreshToken;
 
