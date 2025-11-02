@@ -1,15 +1,31 @@
+using Application.Abstractions.Services;
 using Domain.Entities;
 using Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Persistence.Users.Repositories;
 
-internal sealed class RefreshTokenRepository(ApplicationDbContext dbContext) : IRefreshTokenRepository
+internal sealed class RefreshTokenRepository(
+    ApplicationDbContext dbContext,
+    ITokenHasher tokenHasher,
+    IRefreshTokenBlacklistService refreshTokenBlacklistService
+) : IRefreshTokenRepository
 {
     public async Task<RefreshToken?> GetAsync(string token, CancellationToken cancellationToken = default)
     {
-        return await dbContext.Set<RefreshToken>()
-            .FirstOrDefaultAsync(x => x.Token == token, cancellationToken);
+        // First check if the token is blacklisted
+        var hashedToken = tokenHasher.HashToken(token);
+        if (await refreshTokenBlacklistService.IsTokenBlacklistedAsync(hashedToken))
+        {
+            return null;
+        }
+
+        // Get all tokens (we need to verify the token against hashed tokens)
+        var refreshTokens = await dbContext.Set<RefreshToken>()
+            .ToListAsync(cancellationToken);
+            
+        // Find the token that matches the provided token
+        return refreshTokens.FirstOrDefault(rt => tokenHasher.VerifyToken(token, rt.HashedToken));
     }
 
     public async Task AddAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
@@ -25,14 +41,16 @@ internal sealed class RefreshTokenRepository(ApplicationDbContext dbContext) : I
 
     public async Task RevokeAsync(string token, CancellationToken cancellationToken = default)
     {
-        var refreshToken = await dbContext.Set<RefreshToken>()
-            .FirstOrDefaultAsync(x => x.Token == token, cancellationToken);
+        var refreshToken = await GetAsync(token, cancellationToken);
 
         if (refreshToken is not null)
         {
             refreshToken.Revoke();
             dbContext.Set<RefreshToken>().Update(refreshToken);
             await dbContext.SaveChangesAsync(cancellationToken);
+            
+            // Also add to blacklist
+            await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
         }
     }
 }

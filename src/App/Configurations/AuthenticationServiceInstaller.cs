@@ -10,6 +10,7 @@ public class AuthenticationServiceInstaller : IServiceInstaller
         // Configure JWT options setup
         services.ConfigureOptions<JwtOptionsSetup>();
         services.ConfigureOptions<JwtBearerOptionsSetup>();
+        services.ConfigureOptions<TokenPolicyOptionsSetup>();
 
         // Add authentication services with JWT Bearer authentication scheme
         services

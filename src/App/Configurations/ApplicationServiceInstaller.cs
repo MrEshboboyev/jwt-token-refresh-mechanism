@@ -1,6 +1,5 @@
 using Application;
 using Application.Behaviors;
-using Domain.Services;
 using FluentValidation;
 using MediatR;
 
@@ -33,6 +32,6 @@ public class ApplicationServiceInstaller : IServiceInstaller
             AssemblyReference.Assembly,
             includeInternalTypes: true);
 
-        services.AddScoped<ITokenService, TokenService>();
+        // Note: ITokenService is now registered via Scrutor in InfrastructureServiceInstaller
     }
 }
