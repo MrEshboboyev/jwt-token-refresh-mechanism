@@ -1,9 +1,9 @@
 using Application.Abstractions.Security;
+using Application.Abstractions.Services;
 using Application.Users.Commands.Login;
 using Domain.Entities;
 using Domain.Errors;
 using Domain.Repositories;
-using Domain.Services;
 using Domain.Shared;
 using Domain.ValueObjects;
 using FluentAssertions;

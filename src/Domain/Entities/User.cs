@@ -106,14 +106,14 @@ public sealed class User : AggregateRoot, IAuditableEntity
         RaiseDomainEvent(new RefreshTokenCreatedDomainEvent(
             Guid.NewGuid(), 
             Id,
-            refreshToken.Token));
+            refreshToken.HashedToken));
     }
 
-    public Result RevokeRefreshToken(string token)
+    public Result RevokeRefreshToken(string hashedToken)
     {
         #region Checking token is valid (or found)
 
-        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token);
+        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.HashedToken == hashedToken);
         if (refreshToken is null)
         {
             return Result.Failure(
@@ -143,11 +143,16 @@ public sealed class User : AggregateRoot, IAuditableEntity
         RaiseDomainEvent(new RefreshTokenRevokedDomainEvent(
             Guid.NewGuid(), 
             Id,
-            refreshToken.Token));
+            refreshToken.HashedToken));
         
         #endregion
         
         return Result.Success();
+    }
+    
+    public RefreshToken? GetActiveRefreshTokenByHash(string hashedToken)
+    {
+        return _refreshTokens.FirstOrDefault(rt => rt.HashedToken == hashedToken && rt.IsActive);
     }
 
     #endregion

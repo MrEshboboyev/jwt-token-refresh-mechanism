@@ -1,5 +1,4 @@
 using Domain.Primitives;
-using Domain.ValueObjects;
 
 namespace Domain.Entities;
 
@@ -10,14 +9,19 @@ public sealed class RefreshToken : Entity, IAuditableEntity
     private RefreshToken(
         Guid id,
         Guid userId,
-        string token,
+        string hashedToken,
         DateTime expiresAt,
-        DateTime? revokedAt = null)
-        : base(id)
+        string ipAddress,
+        string userAgent,
+        DateTime createdAt,
+        DateTime? revokedAt = null) : base(id)
     {
         UserId = userId;
-        Token = token;
+        HashedToken = hashedToken;
         ExpiresAt = expiresAt;
+        IpAddress = ipAddress;
+        UserAgent = userAgent;
+        CreatedAt = createdAt;
         RevokedAt = revokedAt;
     }
     
@@ -26,8 +30,11 @@ public sealed class RefreshToken : Entity, IAuditableEntity
     #region Properties
 
     public Guid UserId { get; private set; }
-    public string Token { get; private set; }
+    public string HashedToken { get; private set; }
     public DateTime ExpiresAt { get; private set; }
+    public string IpAddress { get; private set; }
+    public string UserAgent { get; private set; }
+    public DateTime CreatedAt { get; private set; }
     public DateTime? RevokedAt { get; private set; }
 
     public DateTime CreatedOnUtc { get; set; }
@@ -40,13 +47,22 @@ public sealed class RefreshToken : Entity, IAuditableEntity
     public static RefreshToken Create(
         Guid userId,
         string token,
-        DateTime expiresAt)
+        string hashedToken,
+        DateTime expiresAt,
+        string ipAddress,
+        string userAgent,
+        DateTime? createdAt = null)
     {
+        var creationTime = createdAt ?? DateTime.UtcNow;
+        
         return new RefreshToken(
             Guid.NewGuid(),
             userId,
-            token,
-            expiresAt);
+            hashedToken,
+            expiresAt,
+            ipAddress,
+            userAgent,
+            creationTime);
     }
     
     #endregion
@@ -62,6 +78,7 @@ public sealed class RefreshToken : Entity, IAuditableEntity
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsRevoked => RevokedAt.HasValue;
+    public bool IsActive => !IsExpired && !IsRevoked;
     
     #endregion
     
