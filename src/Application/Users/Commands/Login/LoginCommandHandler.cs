@@ -1,11 +1,14 @@
+using Application.Abstractions.Authentication;
+using Application.Abstractions.Logging;
 using Application.Abstractions.Messaging;
 using Application.Abstractions.Security;
+using Application.Abstractions.Services;
 using Application.Users.Common;
 using Domain.Errors;
 using Domain.Repositories;
-using Domain.Services;
 using Domain.Shared;
 using Domain.ValueObjects;
+using Microsoft.Extensions.Options;
 
 namespace Application.Users.Commands.Login;
 
@@ -15,10 +18,16 @@ internal sealed class LoginCommandHandler(
     ITokenService tokenService,
     IUserRepository userRepository,
     IRefreshTokenRepository refreshTokenRepository,
-    IUnitOfWork unitOfWork) : ICommandHandler<LoginCommand, LoginResponse>
+    IUnitOfWork unitOfWork,
+    IClientInfoService clientInfoService,
+    IConcurrentLoginService concurrentLoginService,
+    IOptions<TokenPolicyOptions> tokenPolicyOptions,
+    ITokenLogger tokenLogger
+) : ICommandHandler<LoginCommand, LoginResponse>
 {
-    public async Task<Result<LoginResponse>> Handle(LoginCommand request,
-        CancellationToken cancellationToken)
+    private readonly TokenPolicyOptions _tokenPolicyOptions = tokenPolicyOptions.Value;
+
+    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var (email, password) = request;
         
@@ -28,6 +37,7 @@ internal sealed class LoginCommandHandler(
         var createEmailResult = Email.Create(email);
         if (createEmailResult.IsFailure)
         {
+            tokenLogger.LogSuspiciousActivity(Guid.Empty, "login", "Invalid email format", clientInfoService.GetIpAddress());
             return Result.Failure<LoginResponse>(
                 createEmailResult.Error);
         }
@@ -40,10 +50,36 @@ internal sealed class LoginCommandHandler(
         // Verify if user exists and the password matches
         if (user is null || !passwordHasher.Verify(password, user.PasswordHash))
         {
+            tokenLogger.LogSuspiciousActivity(user?.Id ?? Guid.Empty, "login", "Invalid credentials", clientInfoService.GetIpAddress());
             return Result.Failure<LoginResponse>(
                 DomainErrors.User.InvalidCredentials);
         }
 
+        #endregion
+        
+        #region Check concurrent login limits
+        
+        if (_tokenPolicyOptions.EnableConcurrentLoginDetection)
+        {
+            var activeSessionCount = user.RefreshTokens.Count(rt => rt.IsActive);
+            if (activeSessionCount >= _tokenPolicyOptions.MaxConcurrentSessionsPerUser)
+            {
+                tokenLogger.LogConcurrentSessionLimitExceeded(user.Id, activeSessionCount, _tokenPolicyOptions.MaxConcurrentSessionsPerUser);
+            }
+            
+            // Terminate oldest sessions if we're at the limit
+            var sessionsTerminated = concurrentLoginService.TerminateOldestSessions(
+                user, 
+                _tokenPolicyOptions.MaxConcurrentSessionsPerUser);
+                
+            // Revoke the terminated tokens
+            if (sessionsTerminated > 0)
+            {
+                userRepository.Update(user);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+        }
+        
         #endregion
         
         #region Generate token
@@ -55,11 +91,32 @@ internal sealed class LoginCommandHandler(
         
         #region Generate refresh token
         
-        var refreshToken = tokenService.CreateRefreshToken(
-            user.Id,
-            Guid.NewGuid().ToString(),
-            DateTime.UtcNow.AddDays(7));
+        var ipAddress = clientInfoService.GetIpAddress();
+        var userAgent = clientInfoService.GetUserAgent();
+        var refreshTokenValue = Guid.NewGuid().ToString();
+        
+        Result<Domain.Entities.RefreshToken> refreshToken;
+        
+        if (_tokenPolicyOptions.EnableSlidingWindowExpiration)
+        {
+            refreshToken = tokenService.CreateRefreshTokenWithPolicy(
+                user.Id,
+                refreshTokenValue,
+                ipAddress,
+                userAgent);
+        }
+        else
+        {
+            refreshToken = tokenService.CreateRefreshToken(
+                user.Id,
+                refreshTokenValue,
+                DateTime.UtcNow.AddDays(_tokenPolicyOptions.RefreshTokenLifetimeDays),
+                ipAddress,
+                userAgent);
+        }
+        
         user.AddRefreshToken(refreshToken.Value);
+        tokenLogger.LogTokenCreated(user.Id, refreshToken.Value.Id.ToString(), ipAddress);
         
         #endregion
         
@@ -71,6 +128,6 @@ internal sealed class LoginCommandHandler(
         
         #endregion
 
-        return Result.Success(new LoginResponse(accessToken, refreshToken.Value.Token));
+        return Result.Success(new LoginResponse(accessToken, refreshTokenValue));
     }
 }

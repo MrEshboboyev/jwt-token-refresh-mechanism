@@ -8,7 +8,10 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Authentication;
 
-internal sealed class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
+internal sealed class JwtProvider(
+    IOptions<JwtOptions> options,
+    IClientInfoService clientInfoService
+) : IJwtProvider
 {
     #region Private fields
 
@@ -19,13 +22,24 @@ internal sealed class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
 
     public string Generate(User user)
     {
+        #region Get client information for additional security claims
+
+        var ipAddress = clientInfoService.GetIpAddress();
+        var userAgent = clientInfoService.GetUserAgent();
+
+        #endregion
+
         #region Create Claims List
 
         // Create a list of claims for the JWT
         var claims = new Claim[]
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email.Value)
+            new(JwtRegisteredClaimNames.Email, user.Email.Value),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // Unique JWT ID
+            new("ip_address", ipAddress),
+            new("user_agent", userAgent),
+            new("created_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString())
         };
 
         #endregion
@@ -46,7 +60,7 @@ internal sealed class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
             _options.Issuer,
             _options.Audience,
             claims,
-            null,
+            DateTime.UtcNow,
             DateTime.UtcNow.AddHours(1),
             signingCredentials);
 

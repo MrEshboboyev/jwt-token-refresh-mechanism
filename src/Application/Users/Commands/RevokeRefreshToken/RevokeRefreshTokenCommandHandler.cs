@@ -1,4 +1,6 @@
+using Application.Abstractions.Logging;
 using Application.Abstractions.Messaging;
+using Application.Abstractions.Security;
 using Domain.Errors;
 using Domain.Repositories;
 using Domain.Shared;
@@ -8,8 +10,10 @@ namespace Application.Users.Commands.RevokeRefreshToken;
 internal sealed class RevokeRefreshTokenCommandHandler(
     IUserRepository userRepository,
     IRefreshTokenRepository refreshTokenRepository,
-    IUnitOfWork unitOfWork)
-    : ICommandHandler<RevokeRefreshTokenCommand>
+    IUnitOfWork unitOfWork,
+    IClientInfoService clientInfoService,
+    ITokenLogger tokenLogger
+) : ICommandHandler<RevokeRefreshTokenCommand>
 {
     public async Task<Result> Handle(
         RevokeRefreshTokenCommand request,
@@ -22,6 +26,7 @@ internal sealed class RevokeRefreshTokenCommandHandler(
         var refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
         if (refreshToken is null)
         {
+            tokenLogger.LogSuspiciousActivity(Guid.Empty, "revoke", "Attempt to revoke non-existent token", clientInfoService.GetIpAddress());
             return Result.Failure(
                 DomainErrors.RefreshToken.InvalidToken);
         }
@@ -33,19 +38,38 @@ internal sealed class RevokeRefreshTokenCommandHandler(
         var user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
         if (user is null)
         {
+            tokenLogger.LogSuspiciousActivity(refreshToken.UserId, refreshToken.Id.ToString(), "User not found during revoke", clientInfoService.GetIpAddress());
             return Result.Failure(DomainErrors.User.NotFound(refreshToken.UserId));
+        }
+        
+        #endregion
+
+        #region Check if the refresh token is being used from the same IP and user agent
+        
+        var currentIpAddress = clientInfoService.GetIpAddress();
+        var currentUserAgent = clientInfoService.GetUserAgent();
+        
+        if (refreshToken.IpAddress != currentIpAddress || refreshToken.UserAgent != currentUserAgent)
+        {
+            // Possible token theft - this might be an unauthorized revocation attempt
+            tokenLogger.LogSuspiciousActivity(user.Id, refreshToken.Id.ToString(), "Token revocation attempt from different IP/UserAgent", currentIpAddress);
+            return Result.Failure(
+                DomainErrors.RefreshToken.InvalidToken);
         }
         
         #endregion
 
         #region Revoke the refresh token
         
-        var revokeRefreshTokenResult = user.RevokeRefreshToken(refreshToken.Token);
+        var revokeRefreshTokenResult = user.RevokeRefreshToken(refreshToken.HashedToken);
         if (revokeRefreshTokenResult.IsFailure)
         {
+            tokenLogger.LogSuspiciousActivity(user.Id, refreshToken.Id.ToString(), "Failed to revoke token", currentIpAddress);
             return Result.Failure(
                 revokeRefreshTokenResult.Error);
         }
+        
+        tokenLogger.LogTokenRevoked(user.Id, refreshToken.Id.ToString(), currentIpAddress);
         
         #endregion
 
