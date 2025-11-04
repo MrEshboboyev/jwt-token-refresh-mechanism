@@ -50,6 +50,7 @@ public sealed class RefreshTokenBlacklistService(
 
     public async Task<int> RemoveExpiredTokensAsync()
     {
+        await Task.Delay(1); // simulate async work
         // Distributed cache automatically expires entries, so this is a no-op
         // In a real implementation with a database, this would remove expired entries
         return 0;

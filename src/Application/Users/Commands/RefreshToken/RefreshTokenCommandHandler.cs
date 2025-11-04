@@ -66,7 +66,7 @@ internal sealed class RefreshTokenCommandHandler(
         {
             // Possible token theft - revoke all user tokens and blacklist this one
             var userFromToken = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
-            if (userFromToken != null)
+            if (userFromToken is not null)
             {
                 // Revoke all refresh tokens for this user
                 foreach (var userRefreshToken in userFromToken.RefreshTokens.Where(rt => !rt.IsRevoked))

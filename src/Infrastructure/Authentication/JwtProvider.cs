@@ -48,7 +48,7 @@ internal sealed class JwtProvider(
 
         // Create signing credentials using the secret key from options
         var signingCredentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey)),
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey!)),
             SecurityAlgorithms.HmacSha256);
 
         #endregion
