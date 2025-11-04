@@ -1,12 +1,13 @@
 using Application.Abstractions.Authentication;
+using Application.Abstractions.Services;
 using Domain.Entities;
 using Domain.Errors;
 using Domain.Shared;
 using Microsoft.Extensions.Options;
 
-namespace Application.Abstractions.Services;
+namespace Infrastructure.Security;
 
-public class TokenService(
+public sealed class TokenService(
     ITokenHasher tokenHasher,
     IOptions<TokenPolicyOptions> tokenPolicyOptions
 ) : ITokenService
