@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageVersion Include="FluentValidation" Version="12.0.0-preview1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0-preview1" />
+    <PackageVersion Include="FSharp.Core" Version="9.0.303" />
     <PackageVersion Include="MediatR" Version="12.4.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="9.0.1" />
@@ -43,5 +44,8 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="NBomber" Version="6.1.0" />
+    <PackageVersion Include="NBomber.Contracts" Version="6.1.0" />
+    <PackageVersion Include="NBomber.Http" Version="6.1.0" />
   </ItemGroup>
 </Project>

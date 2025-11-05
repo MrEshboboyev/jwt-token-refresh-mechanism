@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36623.8 d17.14
+VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{5CFEFB45-8B8E-4AE0-8A72-038FA17EDDA8}"
 EndProject
@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerformanceTests", "tests\PerformanceTests\PerformanceTests.csproj", "{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +69,10 @@ Global
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -79,6 +85,7 @@ Global
 		{D54E0651-3C65-4FCF-904E-15A06E4DFCA4} = {5CFEFB45-8B8E-4AE0-8A72-038FA17EDDA8}
 		{9240958E-5E9C-4B30-91B9-144751FAACFA} = {5CFEFB45-8B8E-4AE0-8A72-038FA17EDDA8}
 		{EA7E9338-653E-48AB-9CCD-CFFA09EE22C1} = {B9261249-35C6-4DC0-B47E-B6FB4ED5C737}
+		{26EF99E3-204C-D2F6-CF2E-0FE5FA14D596} = {B9261249-35C6-4DC0-B47E-B6FB4ED5C737}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0D0B649A-69C6-41DF-81F8-23519847D797}
