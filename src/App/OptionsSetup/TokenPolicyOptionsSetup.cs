@@ -3,7 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace App.OptionsSetup;
 
-public class TokenPolicyOptionsSetup(IConfiguration configuration) : IConfigureOptions<TokenPolicyOptions>
+public class TokenPolicyOptionsSetup(
+    IConfiguration configuration
+) : IConfigureOptions<TokenPolicyOptions>
 {
     private const string SectionName = "TokenPolicy";
 

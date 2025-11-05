@@ -1,5 +1,7 @@
 using App.Configurations;
 using App.Middlewares;
+using App.OptionsSetup;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +21,18 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Use NSwag middleware for Swagger UI and ReDoc
+    app.UseOpenApi();
+    app.UseSwaggerUi();
+    
+    // Configure ReDoc with custom settings from appsettings.json
+    var reDocOptions = app.Services.GetRequiredService<IOptions<ReDocOptions>>().Value;
+    
+    app.UseReDoc(config =>
+    {
+        config.Path = reDocOptions.Path;
+        config.DocumentPath = reDocOptions.DocumentPath;
+    });
 }
 
 app.UseHttpsRedirection();
