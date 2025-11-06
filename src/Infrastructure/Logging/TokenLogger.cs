@@ -62,4 +62,22 @@ public sealed class TokenLogger(
             sessionCount,
             limit);
     }
+    
+    public void LogTokenCreationError(Guid userId, string error, string ipAddress)
+    {
+        logger.Error(
+            "Token creation error for user {UserId} from IP {IpAddress}: {Error}",
+            userId,
+            ipAddress,
+            error);
+    }
+    
+    public void LogDatabaseError(Guid userId, string operation, string error)
+    {
+        logger.Error(
+            "Database error for user {UserId} during operation {Operation}: {Error}",
+            userId,
+            operation,
+            error);
+    }
 }

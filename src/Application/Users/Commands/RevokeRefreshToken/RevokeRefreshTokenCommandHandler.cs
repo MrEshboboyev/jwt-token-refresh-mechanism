@@ -23,7 +23,17 @@ internal sealed class RevokeRefreshTokenCommandHandler(
         
         #region Get the refresh token
         
-        var refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
+        Domain.Entities.RefreshToken? refreshToken;
+        try
+        {
+            refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(Guid.Empty, "Failed to retrieve refresh token for revocation", ex.Message);
+            return Result.Failure(DomainErrors.General.DatabaseError);
+        }
+        
         if (refreshToken is null)
         {
             tokenLogger.LogSuspiciousActivity(Guid.Empty, "revoke", "Attempt to revoke non-existent token", clientInfoService.GetIpAddress());
@@ -35,7 +45,17 @@ internal sealed class RevokeRefreshTokenCommandHandler(
 
         #region Get the user associated with the refresh token
         
-        var user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+        Domain.Entities.User? user;
+        try
+        {
+            user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(refreshToken.UserId, "Failed to retrieve user during revoke", ex.Message);
+            return Result.Failure(DomainErrors.General.DatabaseError);
+        }
+        
         if (user is null)
         {
             tokenLogger.LogSuspiciousActivity(refreshToken.UserId, refreshToken.Id.ToString(), "User not found during revoke", clientInfoService.GetIpAddress());
@@ -75,8 +95,16 @@ internal sealed class RevokeRefreshTokenCommandHandler(
 
         #region Save changes
         
-        userRepository.Update(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            userRepository.Update(user);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(user.Id, "Failed to save revocation changes", ex.Message);
+            return Result.Failure(DomainErrors.General.DatabaseError);
+        }
         
         #endregion
 

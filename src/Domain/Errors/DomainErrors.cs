@@ -42,14 +42,18 @@ public static class DomainErrors
         public static readonly Error RevokedToken = new(
             "RefreshToken.RevokedToken",
             "The refresh token has been revoked.");
+
+        public static readonly Error CreationFailed = new(
+            "RefreshToken.CreationFailed",
+            "Failed to create refresh token.");
     }
 
     #endregion
 
     #endregion
-    
+
     #region Value Objects
-    
+
     public static class Email
     {
         public static readonly Error Empty = new(
@@ -73,4 +77,13 @@ public static class DomainErrors
     #endregion
     
     #endregion
+
+    public static class General
+    {
+        public static readonly Error DatabaseError = 
+            new("General.DatabaseError", "A database error occurred.");
+
+        public static readonly Error Unexpected = 
+            new("General.Unexpected", "An unexpected error occurred.");
+    }
 }

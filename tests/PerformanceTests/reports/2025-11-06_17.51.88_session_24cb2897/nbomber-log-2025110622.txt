@@ -1,0 +1,58 @@
+2025-11-06 22:51:11.028 +05:00 [INF] [ThreadId:2] NBomber 6.1.0 started a new session: 2025-11-06_17.51.88_session_24cb2897
+2025-11-06 22:51:11.156 +05:00 [INF] [ThreadId:2] NBomber started as single node
+2025-11-06 22:51:11.170 +05:00 [INF] [ThreadId:2] License validation....
+2025-11-06 22:51:11.185 +05:00 [WRN] [ThreadId:2] THIS VERSION IS FREE ONLY FOR PERSONAL USE. You can't use it for an organization.
+2025-11-06 22:51:11.236 +05:00 [INF] [ThreadId:2] Reports folder: C:\Users\dev\source\repos\jwt-token-refresh-mechanism\tests\PerformanceTests\bin\Debug\net9.0\reports\2025-11-06_17.51.88_session_24cb2897
+2025-11-06 22:51:11.238 +05:00 [INF] [ThreadId:2] Plugins: no plugins were loaded
+2025-11-06 22:51:11.239 +05:00 [INF] [ThreadId:2] Reporting sinks: no reporting sinks were loaded
+2025-11-06 22:51:11.267 +05:00 [INF] [ThreadId:2] Starting init...
+2025-11-06 22:51:11.293 +05:00 [INF] [ThreadId:2] Target scenarios: simple_api_test_scenario, full_jwt_flow_scenario
+2025-11-06 22:51:11.303 +05:00 [INF] [ThreadId:2] Init finished
+2025-11-06 22:51:11.350 +05:00 [INF] [ThreadId:2] Starting bombing...
+2025-11-06 22:51:44.234 +05:00 [ERR] [ThreadId:34] Unhandled exception for Scenario: 0
+System.Net.Http.HttpRequestException: An error occurred while sending the request.
+ ---> System.Net.Http.HttpIOException: The response ended prematurely. (ResponseEnded)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at NBomber.Http.FSharp.Http.sendWithArgs@267.MoveNext()
+   at PerformanceTests.Tests.FullJwtFlowTests.<>c__DisplayClass0_0.<<CreateScenario>b__0>d.MoveNext() in C:\Users\dev\source\repos\jwt-token-refresh-mechanism\tests\PerformanceTests\Tests\FullJwtFlowTests.cs:line 21
+--- End of stack trace from previous location ---
+   at NBomber.FSharp.Scenario.typedRun@70-1.MoveNext()
+   at NBomber.Domain.Scheduler.ScenarioActor.clo@68-5.MoveNext()
+2025-11-06 22:51:44.236 +05:00 [ERR] [ThreadId:5] Unhandled exception for Scenario: 0
+System.Net.Http.HttpRequestException: An error occurred while sending the request.
+ ---> System.Net.Http.HttpIOException: The response ended prematurely. (ResponseEnded)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at NBomber.Http.FSharp.Http.sendWithArgs@267.MoveNext()
+   at PerformanceTests.Tests.FullJwtFlowTests.<>c__DisplayClass0_0.<<CreateScenario>b__0>d.MoveNext() in C:\Users\dev\source\repos\jwt-token-refresh-mechanism\tests\PerformanceTests\Tests\FullJwtFlowTests.cs:line 30
+--- End of stack trace from previous location ---
+   at NBomber.FSharp.Scenario.typedRun@70-1.MoveNext()
+   at NBomber.Domain.Scheduler.ScenarioActor.clo@68-5.MoveNext()
+2025-11-06 22:51:44.601 +05:00 [ERR] [ThreadId:5] Unhandled exception for Scenario: 0
+System.Net.Http.HttpRequestException: An error occurred while sending the request.
+ ---> System.Net.Http.HttpIOException: The response ended prematurely. (ResponseEnded)
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnection.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at NBomber.Http.FSharp.Http.sendWithArgs@267.MoveNext()
+   at PerformanceTests.Tests.FullJwtFlowTests.<>c__DisplayClass0_0.<<CreateScenario>b__0>d.MoveNext() in C:\Users\dev\source\repos\jwt-token-refresh-mechanism\tests\PerformanceTests\Tests\FullJwtFlowTests.cs:line 21
+--- End of stack trace from previous location ---
+   at NBomber.FSharp.Scenario.typedRun@70-1.MoveNext()
+   at NBomber.Domain.Scheduler.ScenarioActor.clo@68-5.MoveNext()
+2025-11-06 22:52:11.695 +05:00 [INF] [ThreadId:31] Waiting on scenarios completion...
+2025-11-06 22:52:14.688 +05:00 [INF] [ThreadId:43] Stopping scenarios...
+2025-11-06 22:52:14.694 +05:00 [INF] [ThreadId:43] Calculating final statistics...
+2025-11-06 22:52:15.216 +05:00 [INF] [ThreadId:43] Reports saved in folder: C:\Users\dev\source\repos\jwt-token-refresh-mechanism\tests\PerformanceTests\reports\2025-11-06_17.51.88_session_24cb2897
+2025-11-06 22:52:15.219 +05:00 [WRN] [ThreadId:43] THIS VERSION IS FREE ONLY FOR PERSONAL USE. You can't use it for an organization.

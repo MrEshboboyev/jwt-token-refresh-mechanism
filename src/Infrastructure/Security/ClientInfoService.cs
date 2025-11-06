@@ -11,7 +11,7 @@ public sealed class ClientInfoService(
     {
         var httpContext = httpContextAccessor.HttpContext;
         if (httpContext == null)
-            return string.Empty;
+            return "unknown";
 
         // Check for X-Forwarded-For header (for reverse proxy scenarios)
         var forwardedFor = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
@@ -29,15 +29,15 @@ public sealed class ClientInfoService(
         }
 
         // Fall back to RemoteIpAddress
-        return httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     public string GetUserAgent()
     {
         var httpContext = httpContextAccessor.HttpContext;
         if (httpContext == null)
-            return string.Empty;
+            return "unknown";
 
-        return httpContext.Request.Headers["User-Agent"].FirstOrDefault() ?? string.Empty;
+        return httpContext.Request.Headers["User-Agent"].FirstOrDefault() ?? "unknown";
     }
 }

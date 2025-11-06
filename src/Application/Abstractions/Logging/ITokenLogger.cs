@@ -8,4 +8,6 @@ public interface ITokenLogger
     void LogTokenBlacklisted(Guid userId, string tokenId, string reason);
     void LogSuspiciousActivity(Guid userId, string tokenId, string reason, string ipAddress);
     void LogConcurrentSessionLimitExceeded(Guid userId, int sessionCount, int limit);
+    void LogTokenCreationError(Guid userId, string error, string ipAddress);
+    void LogDatabaseError(Guid userId, string operation, string error);
 }

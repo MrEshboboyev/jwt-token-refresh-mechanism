@@ -31,12 +31,26 @@ public sealed class TokenHasher : ITokenHasher
     {
         try
         {
+            // Handle null or empty inputs
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(hashedToken))
+                return false;
+
             // Split the stored hash to get salt and hash
             var parts = hashedToken.Split('.');
             if (parts.Length != 2)
                 return false;
 
-            var salt = Convert.FromBase64String(parts[0]);
+            // Safely convert from base64
+            byte[] salt;
+            try
+            {
+                salt = Convert.FromBase64String(parts[0]);
+            }
+            catch
+            {
+                return false;
+            }
+
             var hash = parts[1];
 
             // Hash the provided token with the stored salt
@@ -47,8 +61,10 @@ public sealed class TokenHasher : ITokenHasher
                 iterationCount: 10000,
                 numBytesRequested: 256 / 8));
 
-            // Compare the hashes
-            return hashed == hash;
+            // Compare the hashes using constant time comparison to prevent timing attacks
+            return CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(hashed),
+                System.Text.Encoding.UTF8.GetBytes(hash));
         }
         catch
         {

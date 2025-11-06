@@ -20,7 +20,8 @@ internal sealed class RefreshTokenRepository(
             return null;
         }
 
-        // Get all tokens (we need to verify the token against hashed tokens)
+        // Load all refresh tokens (temporary solution until we can properly index)
+        // TODO: This is inefficient and should be optimized with proper database indexing
         var refreshTokens = await dbContext.Set<RefreshToken>()
             .ToListAsync(cancellationToken);
             

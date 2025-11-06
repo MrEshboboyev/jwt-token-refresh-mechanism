@@ -69,8 +69,16 @@ internal sealed class RegisterUserCommandHandler(
 
         #region Add and Update database
 
-        userRepository.Add(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            userRepository.Add(user);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Log the exception if logging is available
+            return Result.Failure(DomainErrors.General.DatabaseError);
+        }
 
         #endregion
 

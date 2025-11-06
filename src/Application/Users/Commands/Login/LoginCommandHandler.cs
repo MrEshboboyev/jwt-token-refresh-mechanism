@@ -97,22 +97,35 @@ internal sealed class LoginCommandHandler(
         
         Result<Domain.Entities.RefreshToken> refreshToken;
         
-        if (_tokenPolicyOptions.EnableSlidingWindowExpiration)
+        try
         {
-            refreshToken = tokenService.CreateRefreshTokenWithPolicy(
-                user.Id,
-                refreshTokenValue,
-                ipAddress,
-                userAgent);
+            if (_tokenPolicyOptions.EnableSlidingWindowExpiration)
+            {
+                refreshToken = tokenService.CreateRefreshTokenWithPolicy(
+                    user.Id,
+                    refreshTokenValue,
+                    ipAddress,
+                    userAgent);
+            }
+            else
+            {
+                refreshToken = tokenService.CreateRefreshToken(
+                    user.Id,
+                    refreshTokenValue,
+                    DateTime.UtcNow.AddDays(_tokenPolicyOptions.RefreshTokenLifetimeDays),
+                    ipAddress,
+                    userAgent);
+            }
+            
+            if (refreshToken.IsFailure)
+            {
+                return Result.Failure<LoginResponse>(refreshToken.Error);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            refreshToken = tokenService.CreateRefreshToken(
-                user.Id,
-                refreshTokenValue,
-                DateTime.UtcNow.AddDays(_tokenPolicyOptions.RefreshTokenLifetimeDays),
-                ipAddress,
-                userAgent);
+            tokenLogger.LogTokenCreationError(user.Id, ex.Message, ipAddress);
+            return Result.Failure<LoginResponse>(DomainErrors.RefreshToken.CreationFailed);
         }
         
         user.AddRefreshToken(refreshToken.Value);
@@ -122,9 +135,17 @@ internal sealed class LoginCommandHandler(
         
         #region Update database
         
-        userRepository.Update(user);
-        await refreshTokenRepository.AddAsync(refreshToken.Value, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            userRepository.Update(user);
+            await refreshTokenRepository.AddAsync(refreshToken.Value, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(user.Id, "Failed to save refresh token", ex.Message);
+            return Result.Failure<LoginResponse>(DomainErrors.General.DatabaseError);
+        }
         
         #endregion
 

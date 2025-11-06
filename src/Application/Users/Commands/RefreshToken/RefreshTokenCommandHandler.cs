@@ -33,7 +33,17 @@ internal sealed class RefreshTokenCommandHandler(
         
         #region Validate the refresh token
         
-        var refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
+        Domain.Entities.RefreshToken? refreshToken;
+        try
+        {
+            refreshToken = await refreshTokenRepository.GetAsync(token, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(Guid.Empty, "Failed to retrieve refresh token", ex.Message);
+            return Result.Failure<RefreshTokenResponse>(DomainErrors.General.DatabaseError);
+        }
+        
         if (refreshToken is null)
         {
             tokenLogger.LogSuspiciousActivity(Guid.Empty, "unknown", "Invalid refresh token provided", clientInfoService.GetIpAddress());
@@ -51,7 +61,14 @@ internal sealed class RefreshTokenCommandHandler(
         if (refreshToken.IsRevoked)
         {
             // Potential replay attack - add to blacklist immediately
-            await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
+            try
+            {
+                await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
+            }
+            catch
+            {
+                // Log error if logging is available
+            }
             tokenLogger.LogSuspiciousActivity(refreshToken.UserId, refreshToken.Id.ToString(), "Attempt to use revoked token", clientInfoService.GetIpAddress());
             tokenLogger.LogTokenBlacklisted(refreshToken.UserId, refreshToken.Id.ToString(), "Revoked token reuse attempt");
             return Result.Failure<RefreshTokenResponse>(
@@ -65,24 +82,56 @@ internal sealed class RefreshTokenCommandHandler(
         if (refreshToken.IpAddress != currentIpAddress || refreshToken.UserAgent != currentUserAgent)
         {
             // Possible token theft - revoke all user tokens and blacklist this one
-            var userFromToken = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+            Domain.Entities.User? userFromToken;
+            try
+            {
+                userFromToken = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                tokenLogger.LogDatabaseError(refreshToken.UserId, "Failed to retrieve user for token theft check", ex.Message);
+                return Result.Failure<RefreshTokenResponse>(DomainErrors.General.DatabaseError);
+            }
+            
             if (userFromToken is not null)
             {
-                // Revoke all refresh tokens for this user
-                foreach (var userRefreshToken in userFromToken.RefreshTokens.Where(rt => !rt.IsRevoked))
+                try
                 {
-                    userFromToken.RevokeRefreshToken(userRefreshToken.HashedToken);
-                    await refreshTokenBlacklistService.BlacklistTokenAsync(userRefreshToken);
-                    tokenLogger.LogTokenRevoked(userFromToken.Id, userRefreshToken.Id.ToString(), currentIpAddress);
-                    tokenLogger.LogTokenBlacklisted(userFromToken.Id, userRefreshToken.Id.ToString(), "Security breach - token theft suspected");
+                    // Revoke all refresh tokens for this user
+                    foreach (var userRefreshToken in userFromToken.RefreshTokens.Where(rt => !rt.IsRevoked))
+                    {
+                        userFromToken.RevokeRefreshToken(userRefreshToken.HashedToken);
+                        try
+                        {
+                            await refreshTokenBlacklistService.BlacklistTokenAsync(userRefreshToken);
+                        }
+                        catch
+                        {
+                            // Log error if logging is available
+                        }
+                        tokenLogger.LogTokenRevoked(userFromToken.Id, userRefreshToken.Id.ToString(), currentIpAddress);
+                        tokenLogger.LogTokenBlacklisted(userFromToken.Id, userRefreshToken.Id.ToString(), "Security breach - token theft suspected");
+                    }
+                    
+                    userRepository.Update(userFromToken);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
                 }
-                
-                userRepository.Update(userFromToken);
-                await unitOfWork.SaveChangesAsync(cancellationToken);
+                catch (Exception ex)
+                {
+                    tokenLogger.LogDatabaseError(userFromToken.Id, "Failed to revoke tokens for security breach", ex.Message);
+                    // Continue execution even if we can't revoke all tokens
+                }
             }
             
             // Blacklist the current token as well
-            await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
+            try
+            {
+                await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
+            }
+            catch
+            {
+                // Log error if logging is available
+            }
             tokenLogger.LogSuspiciousActivity(refreshToken.UserId, refreshToken.Id.ToString(), "Token used from different IP/UserAgent", currentIpAddress);
             tokenLogger.LogTokenBlacklisted(refreshToken.UserId, refreshToken.Id.ToString(), "Token theft suspected");
             
@@ -94,7 +143,17 @@ internal sealed class RefreshTokenCommandHandler(
         
         #region Get the user associated with the refresh token
         
-        var user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+        Domain.Entities.User? user;
+        try
+        {
+            user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(refreshToken.UserId, "Failed to retrieve user", ex.Message);
+            return Result.Failure<RefreshTokenResponse>(DomainErrors.General.DatabaseError);
+        }
+        
         if (user is null)
         {
             tokenLogger.LogSuspiciousActivity(refreshToken.UserId, refreshToken.Id.ToString(), "User not found", currentIpAddress);
@@ -106,54 +165,96 @@ internal sealed class RefreshTokenCommandHandler(
 
         #region Generate a new access token
         
-        var accessToken = jwtProvider.Generate(user);
+        string accessToken;
+        try
+        {
+            accessToken = jwtProvider.Generate(user);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogTokenCreationError(user.Id, $"Failed to generate JWT: {ex.Message}", currentIpAddress);
+            return Result.Failure<RefreshTokenResponse>(DomainErrors.General.Unexpected);
+        }
 
         #endregion
-        
+
         #region Implement refresh token rotation - revoke the old token and create a new one
-        
-        // Revoke the current refresh token (one-time use policy)
-        user.RevokeRefreshToken(refreshToken.HashedToken);
-        tokenLogger.LogTokenRevoked(user.Id, refreshToken.Id.ToString(), currentIpAddress);
-        
-        // Add the old token to the blacklist
-        await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
-        tokenLogger.LogTokenBlacklisted(user.Id, refreshToken.Id.ToString(), "Token rotated");
-        
+
         // Create a new refresh token with sliding window policy
         var newRefreshTokenValue = Guid.NewGuid().ToString();
         Result<Domain.Entities.RefreshToken> newRefreshToken;
-        
-        if (_tokenPolicyOptions.EnableSlidingWindowExpiration)
+        try
         {
-            newRefreshToken = tokenService.CreateRefreshTokenWithPolicy(
-                user.Id,
-                newRefreshTokenValue,
-                currentIpAddress,
-                currentUserAgent,
-                refreshToken.CreatedAt);
+            // Revoke the current refresh token (one-time use policy)
+            var revokeRefreshTokenResult = user.RevokeRefreshToken(refreshToken.HashedToken);
+            if (revokeRefreshTokenResult.IsFailure)
+            {
+                tokenLogger.LogSuspiciousActivity(user.Id, refreshToken.Id.ToString(), "Failed to revoke token", currentIpAddress);
+                // Continue execution even if we can't revoke the token
+            }
+            tokenLogger.LogTokenRevoked(user.Id, refreshToken.Id.ToString(), currentIpAddress);
+            
+            // Add the old token to the blacklist
+            try
+            {
+                await refreshTokenBlacklistService.BlacklistTokenAsync(refreshToken);
+            }
+            catch
+            {
+                // Log error if logging is available
+            }
+            tokenLogger.LogTokenBlacklisted(user.Id, refreshToken.Id.ToString(), "Token rotated");
+            
+            if (_tokenPolicyOptions.EnableSlidingWindowExpiration)
+            {
+                newRefreshToken = tokenService.CreateRefreshTokenWithPolicy(
+                    user.Id,
+                    newRefreshTokenValue,
+                    currentIpAddress,
+                    currentUserAgent,
+                    refreshToken.CreatedAt);
+            }
+            else
+            {
+                newRefreshToken = tokenService.CreateRefreshToken(
+                    user.Id,
+                    newRefreshTokenValue,
+                    DateTime.UtcNow.AddDays(_tokenPolicyOptions.RefreshTokenLifetimeDays),
+                    currentIpAddress,
+                    currentUserAgent);
+            }
+            
+            if (newRefreshToken.IsFailure)
+            {
+                tokenLogger.LogTokenCreationError(user.Id, "Failed to create new refresh token", currentIpAddress);
+                return Result.Failure<RefreshTokenResponse>(newRefreshToken.Error);
+            }
+            
+            user.AddRefreshToken(newRefreshToken.Value);
+            tokenLogger.LogTokenCreated(user.Id, newRefreshToken.Value.Id.ToString(), currentIpAddress);
+            tokenLogger.LogTokenRefreshed(user.Id, refreshToken.Id.ToString(), newRefreshToken.Value.Id.ToString(), currentIpAddress);
         }
-        else
+        catch (Exception ex)
         {
-            newRefreshToken = tokenService.CreateRefreshToken(
-                user.Id,
-                newRefreshTokenValue,
-                DateTime.UtcNow.AddDays(_tokenPolicyOptions.RefreshTokenLifetimeDays),
-                currentIpAddress,
-                currentUserAgent);
+            tokenLogger.LogTokenCreationError(user.Id, $"Failed during token rotation: {ex.Message}", currentIpAddress);
+            return Result.Failure<RefreshTokenResponse>(DomainErrors.General.Unexpected);
         }
-        
-        user.AddRefreshToken(newRefreshToken.Value);
-        tokenLogger.LogTokenCreated(user.Id, newRefreshToken.Value.Id.ToString(), currentIpAddress);
-        tokenLogger.LogTokenRefreshed(user.Id, refreshToken.Id.ToString(), newRefreshToken.Value.Id.ToString(), currentIpAddress);
         
         #endregion
 
         #region Save changes
         
-        userRepository.Update(user);
-        await refreshTokenRepository.AddAsync(newRefreshToken.Value, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            userRepository.Update(user);
+            await refreshTokenRepository.AddAsync(newRefreshToken.Value, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            tokenLogger.LogDatabaseError(user.Id, "Failed to save token changes", ex.Message);
+            return Result.Failure<RefreshTokenResponse>(DomainErrors.General.DatabaseError);
+        }
         
         #endregion
 
