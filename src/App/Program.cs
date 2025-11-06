@@ -1,7 +1,9 @@
 using App.Configurations;
 using App.Middlewares;
 using App.OptionsSetup;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Persistence;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,4 +52,24 @@ app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 // Map controllers to route endpoints
 app.MapControllers();
 
+await AutoMigrateAsync(app);
+
 app.Run();
+
+// auto migrate method
+static async Task AutoMigrateAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        await dbContext.Database.MigrateAsync();
+        Log.Information("Database migration completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "An error occurred while migrating the database.");
+        throw;
+    }
+}
